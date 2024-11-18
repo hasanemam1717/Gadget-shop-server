@@ -8,7 +8,7 @@ const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
 
 // middleware
-app.use(cors());
+app.use(cors({ origin: "http://localhost:5173/",optionsSuccessStatus:200 }));
 app.use(express.json());
 
 //mongodb
@@ -23,24 +23,31 @@ const client = new MongoClient(uri, {
   },
 });
 
-const userCollection = client.db("gadgetShop").collection("users");
-const productCollection = client.db("gadgetShop").collection("products");
+const userCollection = client.db("gadget-shop").collection("users");
+const productCollection = client.db("gadget-shop").collection("products");
 
 const dbConnect = async () => {
   try {
     client.connect();
     console.log("Database connected successfully");
-    // insertUser
-    app.post("/users", async (res, req) => {
-      const user = req.body;
+
+    // getUser
+    app.get("/user/:email", async (req, res) => {
+      const query = { email: req.params.email };
+      console.log(query);
+      const user = await userCollection.findOne(query);
       console.log(user);
-      return;
-      const result = await userCollection.insertOne(user);
+      res.send(user);
+    });
+    // insertUser
+    app.post("/userData", async (req, res) => {
+      const user = req.body;
       const query = { email: user.email };
       const existingUser = await userCollection.findOne(query);
       if (existingUser) {
         return res.send({ massage: "User already exist" });
       }
+      const result = await userCollection.insertOne(user);
       res.send(result);
     });
   } catch (error) {
