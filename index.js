@@ -8,8 +8,37 @@ const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
 
 // middleware
-app.use(cors({ origin: "http://localhost:5173/",optionsSuccessStatus:200 }));
+app.use(cors());
 app.use(express.json());
+
+// token verification 
+const tokenJwt =(req,res,next)=>{
+  const authentication =req.headers.Authorization;
+  if(!authentication){
+    res.send({massage:"No token"})
+  }
+  const token = authentication.split(' ')[1];
+  jwt.verify(token.process.env.ACCESS_key_token,(err,decode)=>{
+    if(err){
+      res.send({massage:'Invalid token'})
+    }
+    req.decoded(decode)
+    next()
+  })
+
+}
+
+// verify seller
+const verifySeller =async(req,res,next) =>{
+  const email = req.decoded.email;
+  const query  = {email:email}
+  const user = await userCollection.findOne(query);
+  if(user?.role === !"seller"){
+    return res.send({massage:'No access without seller role'})
+  }
+  next()
+
+}
 
 //mongodb
 
@@ -50,6 +79,13 @@ const dbConnect = async () => {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+    // add products
+    app.post('/addProducts',tokenJwt,verifySeller, async(req,res)=>{
+      const product = req.body;
+      console.log(product);
+      const result = await productCollection.insertOne(product)
+      res.send(result)
+    })
   } catch (error) {
     console.log(error?.name, error?.massage);
   }
